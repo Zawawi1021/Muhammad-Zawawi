@@ -1,30 +1,47 @@
 const { MongoClient } = require('mongodb');
 
-async function main() {
-    const uri = "mongodb://localhost:27017"
-    const client = new MongoClient(uri);
+const uri = 'mongodb://localhost:27017';
+const client = new MongoClient(uri);
 
+const drivers = [
+    { name: 'Awi', vehicle: 'Myvi', isAvailable: true, rating: 4.9 },
+    { name: 'RAzin', vehicle: 'Saga', isAvailable: true, rating: 4.8 },
+    { name: 'Aziz', vehicle: 'Axia', isAvailable: false, rating: 4.7 }
+];
+
+console.log('Drivers array:', drivers);
+console.log('\nDriver names:');
+drivers.forEach((d, i) => console.log(`${i + 1}. ${d.name}`));
+
+async function main() {
     try {
         await client.connect();
-        console.log("Connected to MongoDB!");
+        console.log('Connected to MongoDB');
 
-        const db = client.db("testDB");
-        const collection = db.collection("users");
+        const db = client.db('testDB');
+        const driverCollection = db.collection('drivers');
 
-        // Insert a document
-        await collection.insertOne({ name: "Alice", age: 25 });
-        console.log("Document inserted");
+        // Insert all drivers at once
+        const insertResult = await driverCollection.insertMany(drivers);
+        const insertedCount = insertResult.insertedCount || Object.keys(insertResult.insertedIds || {}).length;
+        console.log(`Inserted ${insertedCount} drivers into testDB.drivers`);
 
-        //Query the document
-        const result = await collection.findOne({ name: "Alice" });
-        console.log("Query result:", result);
+        // Example update: bump rating for Awi
+        const updateResult = await driverCollection.updateOne({ name: 'Awi' }, { $inc: { rating: 0.1 } });
+        console.log(`Driver update - matched: ${updateResult.matchedCount}, modified: ${updateResult.modifiedCount}`);
+
+        // Example delete: remove one unavailable driver
+        const deleteResult = await driverCollection.deleteOne({ isAvailable: false });
+        console.log(`Driver delete - deletedCount: ${deleteResult.deletedCount}`);
 
     } catch (err) {
-        console.error("Error", err);
+        console.error('Error pushing drivers to MongoDB:', err);
     } finally {
         await client.close();
-
     }
 }
 
+// Run push
 main();
+
+
